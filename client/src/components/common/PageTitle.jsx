@@ -2,7 +2,17 @@ import React, { useEffect } from 'react';
 
 const PageTitle = ({ title, subtitle }) => {
   useEffect(() => {
-    document.title = `${title} — CDOT TMS`;
+    const updateTitle = () => {
+      const savedName = localStorage.getItem('tms_systemName') || 'CDOT Training Management System';
+      document.title = `${title} — ${savedName}`;
+    };
+
+    updateTitle();
+
+    window.addEventListener('tms_settings_changed', updateTitle);
+    return () => {
+      window.removeEventListener('tms_settings_changed', updateTitle);
+    };
   }, [title]);
 
   return (

@@ -22,6 +22,7 @@ const FilterPanel = ({ onApply, onReset }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedModes, setSelectedModes] = useState([]);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [filterOperator, setFilterOperator] = useState('and');
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -71,7 +72,8 @@ const FilterPanel = ({ onApply, onReset }) => {
       division: selectedDivisions.map(d => d.value).join(','),
       type: selectedTypes.map(t => t.value).join(','),
       mode: selectedModes.map(m => m.value).join(','),
-      status: selectedStatuses.map(s => s.value).join(',')
+      status: selectedStatuses.map(s => s.value).join(','),
+      filterOperator
     });
   };
 
@@ -84,6 +86,7 @@ const FilterPanel = ({ onApply, onReset }) => {
     setSelectedTypes([]);
     setSelectedModes([]);
     setSelectedStatuses([]);
+    setFilterOperator('and');
     onReset();
   };
 
@@ -105,9 +108,40 @@ const FilterPanel = ({ onApply, onReset }) => {
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850/50 rounded-2xl p-5 shadow-sm space-y-4">
-      <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-350">
-        <SlidersHorizontal className="w-4 h-4 text-brand-700" />
-        <span>REPORT QUERY FILTERS</span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs font-bold text-slate-700 dark:text-slate-350">
+        <div className="flex items-center space-x-2">
+          <SlidersHorizontal className="w-4 h-4 text-brand-700" />
+          <span>REPORT QUERY FILTERS</span>
+        </div>
+
+        {/* AND / OR Combination Select */}
+        <div className="flex items-center space-x-2 text-[11px]">
+          <span className="text-slate-500 font-semibold uppercase tracking-wider">Match Mode:</span>
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-50 dark:bg-slate-950">
+            <button
+              type="button"
+              onClick={() => setFilterOperator('and')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                filterOperator === 'and'
+                  ? 'bg-slate-900 text-white dark:bg-brand-700'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              AND (Match All)
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterOperator('or')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                filterOperator === 'or'
+                  ? 'bg-slate-900 text-white dark:bg-brand-700'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              OR (Match Any)
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[11px] font-bold text-slate-600 dark:text-slate-400">

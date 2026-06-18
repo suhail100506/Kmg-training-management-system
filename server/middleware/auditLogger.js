@@ -30,4 +30,27 @@ const logAudit = async ({
   }
 };
 
-module.exports = { logAudit };
+/**
+ * Helper function to create multiple audit log entries in a single batch.
+ */
+const logAuditBulk = async (logs) => {
+  try {
+    if (!logs || logs.length === 0) return;
+    const entries = logs.map(log => ({
+      userId: log.userId,
+      userEmail: log.userEmail,
+      action: log.action,
+      module: log.module,
+      recordId: log.recordId,
+      before: log.before,
+      after: log.after,
+      ipAddress: log.ipAddress || 'unknown',
+      timestamp: new Date()
+    }));
+    await AuditLog.insertMany(entries, { ordered: false });
+  } catch (err) {
+    console.error('Bulk audit log failed to write:', err);
+  }
+};
+
+module.exports = { logAudit, logAuditBulk };

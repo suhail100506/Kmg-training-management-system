@@ -3,7 +3,9 @@ const moment = require('moment');
 const Staff = require('../models/Staff');
 const TrainingRecord = require('../models/TrainingRecord');
 const UploadBatch = require('../models/UploadBatch');
-const { TRAINING_TYPES, TRAINING_MODES, TRAINING_STATUSES } = require('../config/constants');
+const User = require('../models/User');
+const { logAudit } = require('../middleware/auditLogger');
+const { TRAINING_TYPES, TRAINING_MODES, TRAINING_STATUSES, AUDIT_ACTIONS } = require('../config/constants');
 
 // Normalize Date to UTC midnight
 const normalizeDateToUTC = (dateVal) => {
@@ -773,13 +775,71 @@ const processStaffBulkUpload = async (filePath, batchId, userId) => {
 
       // 6. Duplicate check (against database)
       if (dbStaffMap.has(staffNumberUpper)) {
-        duplicateCount++;
-        duplicates.push({
-          row: rowNum,
-          reason: `Staff member with number "${staffNumber}" already exists in the roster`,
-          data: rowData
-        });
-        continue;
+        const existing = dbStaffMap.get(staffNumberUpper);
+        if (existing.isDeleted) {
+          // Reactivate/restore the soft-deleted staff member
+          try {
+            await Staff.updateOne({ _id: existing._id }, {
+              isDeleted: false,
+              staffName,
+              emailId: emailId ? emailId.toLowerCase() : undefined,
+              designation,
+              groupName,
+              productDivisionCategory,
+              reportingGLManagerName,
+              employmentStatus,
+              dateOfJoining,
+              superannuationDate,
+              updatedBy: userId
+            });
+            
+            // Log reactivation in audit log
+            await logAudit({
+              userId,
+              userEmail: (await User.findById(userId))?.email || 'system',
+              action: AUDIT_ACTIONS.UPDATE,
+              module: 'Staff',
+              recordId: existing._id,
+              before: existing,
+              after: {
+                ...existing,
+                isDeleted: false,
+                staffName,
+                emailId,
+                designation,
+                groupName,
+                productDivisionCategory,
+                reportingGLManagerName,
+                employmentStatus,
+                dateOfJoining,
+                superannuationDate
+              },
+              ipAddress: 'bulk-import'
+            });
+
+            // Update local map to reflect reactivation
+            existing.isDeleted = false;
+            dbStaffMap.set(staffNumberUpper, existing);
+            successCount++;
+            continue;
+          } catch (err) {
+            errorCount++;
+            errors.push({
+              row: rowNum,
+              reason: `Failed to restore soft-deleted staff member: ${err.message}`,
+              data: rowData
+            });
+            continue;
+          }
+        } else {
+          duplicateCount++;
+          duplicates.push({
+            row: rowNum,
+            reason: `Staff member with number "${staffNumber}" already exists in the roster`,
+            data: rowData
+          });
+          continue;
+        }
       }
 
       // 7. Save Staff record

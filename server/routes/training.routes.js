@@ -9,6 +9,7 @@ router.use(protect);
 router.use(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN));
 
 router.get('/check-duplicate', trainingController.checkDuplicate); // MUST be defined before /:id
+router.post('/bulk-delete', trainingController.deleteTrainingRecordsBulk);
 
 router.route('/')
   .get(trainingController.getTrainingRecords)

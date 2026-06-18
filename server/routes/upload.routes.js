@@ -51,7 +51,7 @@ router.use(protect);
 router.use(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN));
 
 router.post('/training', upload.single('file'), uploadController.uploadTrainingFile);
-router.post('/staff', roleCheck(ROLES.SUPER_ADMIN), upload.single('file'), uploadController.uploadStaffFile);
+router.post('/staff', roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), upload.single('file'), uploadController.uploadStaffFile);
 router.get('/template', uploadController.downloadTemplate);
 router.get('/batches', uploadController.getUploadBatches);
 router.get('/batches/:batchId', uploadController.getUploadBatchById);

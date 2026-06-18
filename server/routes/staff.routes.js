@@ -8,14 +8,15 @@ const { ROLES } = require('../config/constants');
 router.use(protect);
 
 router.get('/search', roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.searchStaff); // MUST be defined before /:id
+router.post('/bulk-delete', roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.deleteStaffBulk);
 
 router.route('/')
   .get(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.getStaff)
-  .post(roleCheck(ROLES.SUPER_ADMIN), staffController.createStaff);
+  .post(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.createStaff);
 
 router.route('/:id')
   .get(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.getStaffById)
-  .put(roleCheck(ROLES.SUPER_ADMIN), staffController.updateStaff)
-  .delete(roleCheck(ROLES.SUPER_ADMIN), staffController.deleteStaff);
+  .put(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.updateStaff)
+  .delete(roleCheck(ROLES.SUPER_ADMIN, ROLES.ADMIN), staffController.deleteStaff);
 
 module.exports = router;

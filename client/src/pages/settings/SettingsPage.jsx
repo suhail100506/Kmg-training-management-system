@@ -7,18 +7,30 @@ import PageTitle from '../../components/common/PageTitle';
 import 'react-toastify/dist/ReactToastify.css';
 
 const SettingsPage = () => {
-  const [systemName, setSystemName] = useState('CDOT Training Management System');
-  const [fyStartMonth, setFyStartMonth] = useState('4'); // 4 = April, 1 = January
-  const [defaultLimit, setDefaultLimit] = useState('25');
-  const [minPasswordLength, setMinPasswordLength] = useState('8');
-  const [requireComplexity, setRequireComplexity] = useState(true);
+  const [systemName, setSystemName] = useState(() => localStorage.getItem('tms_systemName') || 'CDOT Training Management System');
+  const [fyStartMonth, setFyStartMonth] = useState(() => localStorage.getItem('tms_fyStartMonth') || '4'); // 4 = April, 1 = January
+  const [defaultLimit, setDefaultLimit] = useState(() => localStorage.getItem('tms_defaultLimit') || '25');
+  const [minPasswordLength, setMinPasswordLength] = useState(() => localStorage.getItem('tms_minPasswordLength') || '8');
+  const [requireComplexity, setRequireComplexity] = useState(() => {
+    const saved = localStorage.getItem('tms_requireComplexity');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [loading, setLoading] = useState(false);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API persistence
+    // Persist to localStorage
+    localStorage.setItem('tms_systemName', systemName);
+    localStorage.setItem('tms_fyStartMonth', fyStartMonth);
+    localStorage.setItem('tms_defaultLimit', defaultLimit);
+    localStorage.setItem('tms_minPasswordLength', minPasswordLength);
+    localStorage.setItem('tms_requireComplexity', String(requireComplexity));
+
+    // Dispatch a custom event to notify other components of change
+    window.dispatchEvent(new Event('tms_settings_changed'));
+
     setTimeout(() => {
       setLoading(false);
       toast.success('System settings saved successfully!');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { isSuperAdmin } from '../../utils/roleHelpers';
@@ -32,6 +32,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [reportsOpen, setReportsOpen] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
+  const [systemName, setSystemName] = useState(() => localStorage.getItem('tms_systemName') || 'CDOT TMS');
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      setSystemName(localStorage.getItem('tms_systemName') || 'CDOT TMS');
+    };
+    window.addEventListener('tms_settings_changed', handleSettingsChange);
+    return () => {
+      window.removeEventListener('tms_settings_changed', handleSettingsChange);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -76,7 +87,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <div className="h-16 flex items-center px-5 border-b border-slate-200/50 dark:border-slate-800/50 bg-brand-700">
             <Link to="/dashboard" className="flex items-center space-x-2.5">
               <img src={cdotLogo} alt="CDOT Logo" className="w-8 h-8 object-contain bg-white rounded-lg p-0.5" />
-              <span className="font-bold text-white tracking-wide text-lg">CDOT TMS</span>
+              <span 
+                className="font-bold text-white tracking-wide text-lg truncate max-w-[170px] inline-block"
+                title={systemName}
+              >
+                {systemName}
+              </span>
             </Link>
           </div>
 

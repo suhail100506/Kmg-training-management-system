@@ -16,6 +16,117 @@ const parseMultiSelect = (val) => {
 // Build search match query with support for arrays and date-range metrics
 const buildReportMatchQuery = (query) => {
   const match = { isDeleted: false };
+  const operator = query.filterOperator === 'or' ? 'or' : 'and';
+
+  if (operator === 'or') {
+    const conditions = [];
+
+    // 1. Handle standard multi-select enums / identifiers
+    const groups = parseMultiSelect(query.group);
+    if (groups && groups.length > 0) conditions.push({ groupName: { $in: groups } });
+
+    const divisions = parseMultiSelect(query.division);
+    if (divisions && divisions.length > 0) conditions.push({ productDivisionCategory: { $in: divisions } });
+
+    const types = parseMultiSelect(query.type);
+    if (types && types.length > 0) conditions.push({ typeOfTraining: { $in: types } });
+
+    const modes = parseMultiSelect(query.mode);
+    if (modes && modes.length > 0) conditions.push({ trainingMode: { $in: modes } });
+
+    const statuses = parseMultiSelect(query.status);
+    if (statuses && statuses.length > 0) conditions.push({ trainingStatus: { $in: statuses } });
+
+    if (query.staffNumber) {
+      conditions.push({ staffNumber: query.staffNumber });
+    }
+
+    // 2. Handle financial year, quarters, and months (Indian Fiscal System)
+    let dateQuery = {};
+    let dateQueryApplied = false;
+
+    const fy = query.financialYear;
+    if (fy) {
+      const start = startOfFY(fy);
+      const end = endOfFY(fy);
+      if (start && end) {
+        dateQuery.$gte = start;
+        dateQuery.$lte = end;
+        dateQueryApplied = true;
+      }
+    }
+
+    // Quarters
+    const quarters = parseMultiSelect(query.quarter);
+    if (quarters && quarters.length > 0) {
+      let startYear;
+      if (fy) {
+        const matchFY = fy.match(/FY (\d{4})-\d{2}/);
+        if (matchFY) startYear = parseInt(matchFY[1], 10);
+      }
+      if (!startYear) {
+        const now = new Date();
+        startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      }
+
+      const quarterRanges = quarters.map(q => {
+        let qStart, qEnd;
+        if (q === 'Q1') {
+          qStart = new Date(Date.UTC(startYear, 3, 1));
+          qEnd = new Date(Date.UTC(startYear, 5, 30, 23, 59, 59, 999));
+        } else if (q === 'Q2') {
+          qStart = new Date(Date.UTC(startYear, 6, 1));
+          qEnd = new Date(Date.UTC(startYear, 8, 30, 23, 59, 59, 999));
+        } else if (q === 'Q3') {
+          qStart = new Date(Date.UTC(startYear, 9, 1));
+          qEnd = new Date(Date.UTC(startYear, 11, 31, 23, 59, 59, 999));
+        } else if (q === 'Q4') {
+          qStart = new Date(Date.UTC(startYear + 1, 0, 1));
+          qEnd = new Date(Date.UTC(startYear + 1, 2, 31, 23, 59, 59, 999));
+        }
+        return { startDateOfTraining: { $gte: qStart, $lte: qEnd } };
+      });
+
+      if (quarterRanges.length > 0) {
+        conditions.push({ $or: quarterRanges });
+      }
+    }
+
+    // Months
+    const months = parseMultiSelect(query.month);
+    if (months && months.length > 0) {
+      let startYear;
+      if (fy) {
+        const matchFY = fy.match(/FY (\d{4})-\d{2}/);
+        if (matchFY) startYear = parseInt(matchFY[1], 10);
+      }
+      if (!startYear) {
+        startYear = new Date().getFullYear();
+      }
+
+      const monthRanges = months.map(m => {
+        const monthIndex = parseInt(m, 10) - 1;
+        const actualYear = monthIndex < 3 && fy ? startYear + 1 : startYear;
+        const mStart = new Date(Date.UTC(actualYear, monthIndex, 1));
+        const mEnd = new Date(Date.UTC(actualYear, monthIndex + 1, 0, 23, 59, 59, 999));
+        return { startDateOfTraining: { $gte: mStart, $lte: mEnd } };
+      });
+
+      if (monthRanges.length > 0) {
+        conditions.push({ $or: monthRanges });
+      }
+    }
+
+    if (dateQueryApplied) {
+      conditions.push({ startDateOfTraining: dateQuery });
+    }
+
+    if (conditions.length > 0) {
+      match.$or = conditions;
+    }
+
+    return match;
+  }
 
   // 1. Handle standard multi-select enums / identifiers
   const groups = parseMultiSelect(query.group);

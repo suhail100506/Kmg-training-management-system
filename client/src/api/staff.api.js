@@ -20,6 +20,10 @@ export const deleteStaff = (id) => {
   return axiosInstance.delete(`/staff/${id}`);
 };
 
+export const deleteStaffBulk = (ids) => {
+  return axiosInstance.post('/staff/bulk-delete', { ids });
+};
+
 export const searchStaff = (q) => {
   return axiosInstance.get('/staff/search', { params: { q } });
 };

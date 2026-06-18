@@ -1,6 +1,6 @@
 const TrainingRecord = require('../models/TrainingRecord');
 const Staff = require('../models/Staff');
-const { logAudit } = require('../middleware/auditLogger');
+const { logAudit, logAuditBulk } = require('../middleware/auditLogger');
 const { AUDIT_ACTIONS } = require('../config/constants');
 const { getPaginationOptions, getPaginationMeta } = require('../utils/pagination');
 const { startOfFY, endOfFY } = require('../utils/dateHelpers');
@@ -32,126 +32,232 @@ const getTrainingRecords = async (req, res, next) => {
       month,
       quarter,
       financialYear,
-      search
+      search,
+      filterOperator
     } = req.query;
 
     const query = { isDeleted: false };
+    const operator = filterOperator === 'or' ? 'or' : 'and';
 
-    // Standard filters
-    if (staffNumber) {
-      query.staffNumber = staffNumber;
-    }
-    if (type) {
-      query.typeOfTraining = type;
-    }
-    if (mode) {
-      query.trainingMode = mode;
-    }
-    if (status) {
-      query.trainingStatus = status;
-    }
-    if (group) {
-      query.groupName = group;
-    }
-    if (division) {
-      query.productDivisionCategory = division;
-    }
+    if (operator === 'or') {
+      const conditions = [];
 
-    // Free text search across staffName, staffNumber, trainingTopic
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      query.$or = [
-        { staffName: searchRegex },
-        { staffNumber: searchRegex },
-        { trainingTopic: searchRegex }
-      ];
-    }
-
-    // Date range filter
-    if (startDate || endDate) {
-      query.startDateOfTraining = {};
-      if (startDate) {
-        query.startDateOfTraining.$gte = new Date(startDate);
+      if (staffNumber) {
+        conditions.push({ staffNumber });
       }
-      if (endDate) {
-        query.startDateOfTraining.$lte = new Date(endDate);
+      if (type) {
+        conditions.push({ typeOfTraining: type });
       }
-    }
-
-    // Financial Year filter
-    if (financialYear) {
-      const start = startOfFY(financialYear);
-      const end = endOfFY(financialYear);
-      if (start && end) {
-        query.startDateOfTraining = {
-          ...query.startDateOfTraining,
-          $gte: start,
-          $lte: end
-        };
+      if (mode) {
+        conditions.push({ trainingMode: mode });
       }
-    }
+      if (status) {
+        conditions.push({ trainingStatus: status });
+      }
+      if (group) {
+        conditions.push({ groupName: group });
+      }
+      if (division) {
+        conditions.push({ productDivisionCategory: division });
+      }
 
-    // Quarter filter (Indian Quarters: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar)
-    if (quarter) {
-      let startYear;
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        conditions.push({
+          $or: [
+            { staffName: searchRegex },
+            { staffNumber: searchRegex },
+            { trainingTopic: searchRegex }
+          ]
+        });
+      }
+
+      if (startDate || endDate) {
+        const cond = {};
+        if (startDate) cond.$gte = new Date(startDate);
+        if (endDate) cond.$lte = new Date(endDate);
+        conditions.push({ startDateOfTraining: cond });
+      }
+
       if (financialYear) {
-        const match = financialYear.match(/FY (\d{4})-\d{2}/);
-        if (match) startYear = parseInt(match[1], 10);
-      }
-      if (!startYear) {
-        const now = new Date();
-        const monthNow = now.getMonth();
-        startYear = monthNow >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      }
-
-      let qStart, qEnd;
-      if (quarter === 'Q1') {
-        qStart = new Date(Date.UTC(startYear, 3, 1));
-        qEnd = new Date(Date.UTC(startYear, 5, 30, 23, 59, 59, 999));
-      } else if (quarter === 'Q2') {
-        qStart = new Date(Date.UTC(startYear, 6, 1));
-        qEnd = new Date(Date.UTC(startYear, 8, 30, 23, 59, 59, 999));
-      } else if (quarter === 'Q3') {
-        qStart = new Date(Date.UTC(startYear, 9, 1));
-        qEnd = new Date(Date.UTC(startYear, 11, 31, 23, 59, 59, 999));
-      } else if (quarter === 'Q4') {
-        qStart = new Date(Date.UTC(startYear + 1, 0, 1));
-        qEnd = new Date(Date.UTC(startYear + 1, 2, 31, 23, 59, 59, 999));
-      }
-
-      if (qStart && qEnd) {
-        query.startDateOfTraining = {
-          ...query.startDateOfTraining,
-          $gte: qStart,
-          $lte: qEnd
-        };
-      }
-    }
-
-    // Month filter (1-12 range)
-    if (month) {
-      const monthIndex = parseInt(month, 10) - 1;
-      let startYear;
-      if (financialYear) {
-        const match = financialYear.match(/FY (\d{4})-\d{2}/);
-        if (match) {
-          const fyStart = parseInt(match[1], 10);
-          // In Indian FY, months Jan-Mar (0,1,2) belong to startingYear + 1. Apr-Dec belong to startingYear.
-          startYear = monthIndex < 3 ? fyStart + 1 : fyStart;
+        const start = startOfFY(financialYear);
+        const end = endOfFY(financialYear);
+        if (start && end) {
+          conditions.push({ startDateOfTraining: { $gte: start, $lte: end } });
         }
       }
-      if (!startYear) {
-        startYear = new Date().getFullYear();
+
+      if (quarter) {
+        let startYear;
+        if (financialYear) {
+          const match = financialYear.match(/FY (\d{4})-\d{2}/);
+          if (match) startYear = parseInt(match[1], 10);
+        }
+        if (!startYear) {
+          const now = new Date();
+          const monthNow = now.getMonth();
+          startYear = monthNow >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+        }
+
+        let qStart, qEnd;
+        if (quarter === 'Q1') {
+          qStart = new Date(Date.UTC(startYear, 3, 1));
+          qEnd = new Date(Date.UTC(startYear, 5, 30, 23, 59, 59, 999));
+        } else if (quarter === 'Q2') {
+          qStart = new Date(Date.UTC(startYear, 6, 1));
+          qEnd = new Date(Date.UTC(startYear, 8, 30, 23, 59, 59, 999));
+        } else if (quarter === 'Q3') {
+          qStart = new Date(Date.UTC(startYear, 9, 1));
+          qEnd = new Date(Date.UTC(startYear, 11, 31, 23, 59, 59, 999));
+        } else if (quarter === 'Q4') {
+          qStart = new Date(Date.UTC(startYear + 1, 0, 1));
+          qEnd = new Date(Date.UTC(startYear + 1, 2, 31, 23, 59, 59, 999));
+        }
+
+        if (qStart && qEnd) {
+          conditions.push({ startDateOfTraining: { $gte: qStart, $lte: qEnd } });
+        }
       }
 
-      const mStart = new Date(Date.UTC(startYear, monthIndex, 1));
-      const mEnd = new Date(Date.UTC(startYear, monthIndex + 1, 0, 23, 59, 59, 999));
+      if (month) {
+        const monthIndex = parseInt(month, 10) - 1;
+        let startYear;
+        if (financialYear) {
+          const match = financialYear.match(/FY (\d{4})-\d{2}/);
+          if (match) {
+            const fyStart = parseInt(match[1], 10);
+            startYear = monthIndex < 3 ? fyStart + 1 : fyStart;
+          }
+        }
+        if (!startYear) {
+          startYear = new Date().getFullYear();
+        }
 
-      query.startDateOfTraining = {
-        ...query.startDateOfTraining,
-        $gte: mStart,
-        $lte: mEnd
-      };
+        const mStart = new Date(Date.UTC(startYear, monthIndex, 1));
+        const mEnd = new Date(Date.UTC(startYear, monthIndex + 1, 0, 23, 59, 59, 999));
+
+        conditions.push({ startDateOfTraining: { $gte: mStart, $lte: mEnd } });
+      }
+
+      if (conditions.length > 0) {
+        query.$or = conditions;
+      }
+    } else {
+      // Standard filters (AND mode)
+      if (staffNumber) {
+        query.staffNumber = staffNumber;
+      }
+      if (type) {
+        query.typeOfTraining = type;
+      }
+      if (mode) {
+        query.trainingMode = mode;
+      }
+      if (status) {
+        query.trainingStatus = status;
+      }
+      if (group) {
+        query.groupName = group;
+      }
+      if (division) {
+        query.productDivisionCategory = division;
+      }
+
+      // Free text search across staffName, staffNumber, trainingTopic
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        query.$or = [
+          { staffName: searchRegex },
+          { staffNumber: searchRegex },
+          { trainingTopic: searchRegex }
+        ];
+      }
+
+      // Date range filter
+      if (startDate || endDate) {
+        query.startDateOfTraining = {};
+        if (startDate) {
+          query.startDateOfTraining.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          query.startDateOfTraining.$lte = new Date(endDate);
+        }
+      }
+
+      // Financial Year filter
+      if (financialYear) {
+        const start = startOfFY(financialYear);
+        const end = endOfFY(financialYear);
+        if (start && end) {
+          query.startDateOfTraining = {
+            ...query.startDateOfTraining,
+            $gte: start,
+            $lte: end
+          };
+        }
+      }
+
+      // Quarter filter (Indian Quarters: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar)
+      if (quarter) {
+        let startYear;
+        if (financialYear) {
+          const match = financialYear.match(/FY (\d{4})-\d{2}/);
+          if (match) startYear = parseInt(match[1], 10);
+        }
+        if (!startYear) {
+          const now = new Date();
+          const monthNow = now.getMonth();
+          startYear = monthNow >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+        }
+
+        let qStart, qEnd;
+        if (quarter === 'Q1') {
+          qStart = new Date(Date.UTC(startYear, 3, 1));
+          qEnd = new Date(Date.UTC(startYear, 5, 30, 23, 59, 59, 999));
+        } else if (quarter === 'Q2') {
+          qStart = new Date(Date.UTC(startYear, 6, 1));
+          qEnd = new Date(Date.UTC(startYear, 8, 30, 23, 59, 59, 999));
+        } else if (quarter === 'Q3') {
+          qStart = new Date(Date.UTC(startYear, 9, 1));
+          qEnd = new Date(Date.UTC(startYear, 11, 31, 23, 59, 59, 999));
+        } else if (quarter === 'Q4') {
+          qStart = new Date(Date.UTC(startYear + 1, 0, 1));
+          qEnd = new Date(Date.UTC(startYear + 1, 2, 31, 23, 59, 59, 999));
+        }
+
+        if (qStart && qEnd) {
+          query.startDateOfTraining = {
+            ...query.startDateOfTraining,
+            $gte: qStart,
+            $lte: qEnd
+          };
+        }
+      }
+
+      // Month filter (1-12 range)
+      if (month) {
+        const monthIndex = parseInt(month, 10) - 1;
+        let startYear;
+        if (financialYear) {
+          const match = financialYear.match(/FY (\d{4})-\d{2}/);
+          if (match) {
+            const fyStart = parseInt(match[1], 10);
+            startYear = monthIndex < 3 ? fyStart + 1 : fyStart;
+          }
+        }
+        if (!startYear) {
+          startYear = new Date().getFullYear();
+        }
+
+        const mStart = new Date(Date.UTC(startYear, monthIndex, 1));
+        const mEnd = new Date(Date.UTC(startYear, monthIndex + 1, 0, 23, 59, 59, 999));
+
+        query.startDateOfTraining = {
+          ...query.startDateOfTraining,
+          $gte: mStart,
+          $lte: mEnd
+        };
+      }
     }
 
     const total = await TrainingRecord.countDocuments(query);
@@ -506,11 +612,64 @@ const checkDuplicate = async (req, res, next) => {
   }
 };
 
+// @desc    Bulk soft delete training records
+// @route   POST /api/v1/training/bulk-delete
+// @access  Private (Admin + Super Admin)
+const deleteTrainingRecordsBulk = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 'No training record IDs provided for deletion', [], 400);
+    }
+
+    const records = await TrainingRecord.find({ _id: { $in: ids }, isDeleted: false });
+    if (records.length === 0) {
+      return sendError(res, 'No matching active training records found for the provided IDs', [], 404);
+    }
+
+    const deletedIds = [];
+    const auditLogs = [];
+
+    for (const record of records) {
+      const before = record.toObject();
+      
+      // Update record state in memory for the 'after' state in audit log
+      record.isDeleted = true;
+      record.deletedBy = req.user._id;
+
+      deletedIds.push(record._id);
+      auditLogs.push({
+        userId: req.user._id,
+        userEmail: req.user.email,
+        action: AUDIT_ACTIONS.DELETE,
+        module: 'TrainingRecord',
+        recordId: record._id,
+        before,
+        after: record.toObject(),
+        ipAddress: req.ip
+      });
+    }
+
+    // Perform bulk database update and bulk audit log insertion
+    await TrainingRecord.updateMany(
+      { _id: { $in: deletedIds } },
+      { $set: { isDeleted: true, deletedBy: req.user._id } }
+    );
+
+    await logAuditBulk(auditLogs);
+
+    return sendSuccess(res, `${deletedIds.length} training records deleted successfully`, { deletedIds });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getTrainingRecords,
   createTrainingRecord,
   getTrainingRecordById,
   updateTrainingRecord,
   deleteTrainingRecord,
-  checkDuplicate
+  checkDuplicate,
+  deleteTrainingRecordsBulk
 };

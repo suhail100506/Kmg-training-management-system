@@ -2,7 +2,10 @@ import { useState } from 'react';
 
 export const usePagination = (initialLimit = 25) => {
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(initialLimit);
+  const [limit, setLimit] = useState(() => {
+    const savedLimit = localStorage.getItem('tms_defaultLimit');
+    return savedLimit ? parseInt(savedLimit, 10) : initialLimit;
+  });
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 

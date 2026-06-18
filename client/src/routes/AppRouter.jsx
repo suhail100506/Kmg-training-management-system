@@ -103,7 +103,7 @@ const AppRouter = () => {
           <Route 
             path="staff/import" 
             element={
-              <RoleRoute roles={['super_admin']}>
+              <RoleRoute roles={['super_admin', 'admin']}>
                 <StaffImportPage />
               </RoleRoute>
             } 
@@ -111,7 +111,7 @@ const AppRouter = () => {
           <Route 
             path="staff/add" 
             element={
-              <RoleRoute roles={['super_admin']}>
+              <RoleRoute roles={['super_admin', 'admin']}>
                 <StaffAddPage />
               </RoleRoute>
             } 
@@ -119,7 +119,7 @@ const AppRouter = () => {
           <Route 
             path="staff/:id/edit" 
             element={
-              <RoleRoute roles={['super_admin']}>
+              <RoleRoute roles={['super_admin', 'admin']}>
                 <StaffEditPage />
               </RoleRoute>
             } 

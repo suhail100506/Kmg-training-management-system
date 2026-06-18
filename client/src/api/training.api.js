@@ -20,6 +20,10 @@ export const deleteTrainingRecord = (id) => {
   return axiosInstance.delete(`/training/${id}`);
 };
 
+export const deleteTrainingRecordsBulk = (ids) => {
+  return axiosInstance.post('/training/bulk-delete', { ids });
+};
+
 export const checkDuplicate = (params) => {
   return axiosInstance.get('/training/check-duplicate', { params });
 };

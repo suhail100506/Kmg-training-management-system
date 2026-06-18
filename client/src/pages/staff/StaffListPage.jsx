@@ -7,7 +7,7 @@ import * as staffApi from '../../api/staff.api';
 import { usePagination } from '../../hooks/usePagination';
 import { formatDate } from '../../utils/formatters';
 import useAuth from '../../hooks/useAuth';
-import { isSuperAdmin } from '../../utils/roleHelpers';
+import { isSuperAdmin, isAdmin } from '../../utils/roleHelpers';
 import PageTitle from '../../components/common/PageTitle';
 import DataTable from '../../components/common/DataTable';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -16,7 +16,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const StaffListPage = () => {
   const { user } = useAuth();
-  const superAdmin = isSuperAdmin(user);
+  const canManageStaff = isSuperAdmin(user) || isAdmin(user);
   const { page, limit, total, totalPages, setTotal, setTotalPages, handlePageChange, handleLimitChange } = usePagination(25);
   const [staff, setStaff] = useState([]);
   const [search, setSearch] = useState('');
@@ -25,6 +25,8 @@ const StaffListPage = () => {
   // Deletion state
   const [deleteId, setDeleteId] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -46,6 +48,11 @@ const StaffListPage = () => {
     }
   };
 
+  // Clear selection when data changes
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [staff]);
+
   useEffect(() => {
     fetchStaff();
   }, [page, limit]);
@@ -55,26 +62,84 @@ const StaffListPage = () => {
     fetchStaff();
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(staff.map(s => s._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
   const handleDeleteTrigger = (id) => {
     setDeleteId(id);
+    setIsBulkDelete(false);
+    setConfirmOpen(true);
+  };
+
+  const handleBulkDeleteTrigger = () => {
+    setIsBulkDelete(true);
     setConfirmOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-    try {
-      await staffApi.deleteStaff(deleteId);
-      toast.success('Staff member deleted successfully.');
-      fetchStaff();
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to delete staff member.');
-    } finally {
-      setDeleteId(null);
+    if (isBulkDelete) {
+      if (selectedIds.length === 0) return;
+      try {
+        await staffApi.deleteStaffBulk(selectedIds);
+        toast.success(`${selectedIds.length} staff members deleted successfully.`);
+        fetchStaff();
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete selected staff members.');
+      } finally {
+        setIsBulkDelete(false);
+      }
+    } else {
+      if (!deleteId) return;
+      try {
+        await staffApi.deleteStaff(deleteId);
+        toast.success('Staff member deleted successfully.');
+        fetchStaff();
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete staff member.');
+      } finally {
+        setDeleteId(null);
+      }
     }
   };
 
   const columns = [
+    {
+      header: (
+        <input
+          type="checkbox"
+          checked={staff.length > 0 && selectedIds.length === staff.length}
+          onChange={handleSelectAll}
+          className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
+        />
+      ),
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(row._id)}
+          onChange={(e) => handleSelectRow(row._id, e.target.checked)}
+          className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
+        />
+      )
+    },
+    {
+      header: '#',
+      render: (row, idx) => (page - 1) * limit + idx + 1
+    },
     { header: 'Staff Number', key: 'staffNumber' },
     { header: 'Staff Name', key: 'staffName' },
     { header: 'Email ID', key: 'emailId' },
@@ -102,7 +167,7 @@ const StaffListPage = () => {
     }
   ];
 
-  if (superAdmin) {
+  if (canManageStaff) {
     columns.push({
       header: 'Actions',
       render: (row) => (
@@ -131,8 +196,17 @@ const StaffListPage = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <PageTitle title="Staff Master Roster" subtitle="Manage active employees master list and alignments" />
         
-        {superAdmin && (
-          <div className="flex gap-2">
+        {canManageStaff && (
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkDeleteTrigger}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition-all duration-200 cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Selected ({selectedIds.length})</span>
+              </button>
+            )}
             <Link
               to="/staff/import"
               className="inline-flex items-center space-x-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 text-xs font-bold rounded-xl shadow-sm transition-all duration-200"
@@ -194,8 +268,12 @@ const StaffListPage = () => {
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleDeleteConfirm}
-        title="Confirm Staff Deletion"
-        message="Are you sure you want to delete this staff member profile from the system? This action cannot be undone."
+        title={isBulkDelete ? "Confirm Bulk Deletion" : "Confirm Staff Deletion"}
+        message={
+          isBulkDelete
+            ? `Are you sure you want to delete the ${selectedIds.length} selected staff members? This action cannot be undone.`
+            : "Are you sure you want to delete this staff member profile from the system? This action cannot be undone."
+        }
       />
 
       <ToastContainer position="top-right" autoClose={5000} />

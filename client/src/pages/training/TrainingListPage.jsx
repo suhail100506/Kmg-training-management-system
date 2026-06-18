@@ -32,6 +32,7 @@ const TrainingListPage = () => {
   const [selectedMode, setSelectedMode] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedFY, setSelectedFY] = useState('');
+  const [filterOperator, setFilterOperator] = useState('and');
 
   // Dropdown Caches
   const [groups, setGroups] = useState([]);
@@ -45,6 +46,8 @@ const TrainingListPage = () => {
   // Deletion States
   const [deleteId, setDeleteId] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
 
   // Load cache options on mount
   useEffect(() => {
@@ -76,7 +79,8 @@ const TrainingListPage = () => {
         type: selectedType || undefined,
         mode: selectedMode || undefined,
         status: selectedStatus || undefined,
-        financialYear: selectedFY || undefined
+        financialYear: selectedFY || undefined,
+        filterOperator: filterOperator
       };
 
       const response = await trainingApi.getTrainingRecords(params);
@@ -92,10 +96,15 @@ const TrainingListPage = () => {
     }
   };
 
+  // Clear selection when data changes
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [records]);
+
   // Trigger fetch on filter / page changes
   useEffect(() => {
     fetchRecords();
-  }, [page, limit, selectedGroup, selectedDivision, selectedType, selectedMode, selectedStatus, selectedFY]);
+  }, [page, limit, selectedGroup, selectedDivision, selectedType, selectedMode, selectedStatus, selectedFY, filterOperator]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -111,30 +120,85 @@ const TrainingListPage = () => {
     setSelectedMode('');
     setSelectedStatus('');
     setSelectedFY('');
+    setFilterOperator('and');
     toast.info('Filters cleared');
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(records.map(r => r._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
   };
 
   const handleDeleteTrigger = (id) => {
     setDeleteId(id);
+    setIsBulkDelete(false);
+    setConfirmOpen(true);
+  };
+
+  const handleBulkDeleteTrigger = () => {
+    setIsBulkDelete(true);
     setConfirmOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-    try {
-      await trainingApi.deleteTrainingRecord(deleteId);
-      toast.success('Training record deleted successfully.');
-      fetchRecords();
-    } catch (err) {
-      console.error('Deletion error:', err);
-      toast.error('Failed to delete training record.');
-    } finally {
-      setDeleteId(null);
+    if (isBulkDelete) {
+      if (selectedIds.length === 0) return;
+      try {
+        await trainingApi.deleteTrainingRecordsBulk(selectedIds);
+        toast.success(`${selectedIds.length} training records deleted successfully.`);
+        fetchRecords();
+      } catch (err) {
+        console.error('Bulk deletion error:', err);
+        toast.error('Failed to delete selected training records.');
+      } finally {
+        setIsBulkDelete(false);
+      }
+    } else {
+      if (!deleteId) return;
+      try {
+        await trainingApi.deleteTrainingRecord(deleteId);
+        toast.success('Training record deleted successfully.');
+        fetchRecords();
+      } catch (err) {
+        console.error('Deletion error:', err);
+        toast.error('Failed to delete training record.');
+      } finally {
+        setDeleteId(null);
+      }
     }
   };
 
   // Define Table Columns
   const columns = [
+    {
+      header: (
+        <input
+          type="checkbox"
+          checked={records.length > 0 && selectedIds.length === records.length}
+          onChange={handleSelectAll}
+          className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
+        />
+      ),
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(row._id)}
+          onChange={(e) => handleSelectRow(row._id, e.target.checked)}
+          className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
+        />
+      )
+    },
     {
       header: '#',
       render: (row, idx) => (page - 1) * limit + idx + 1
@@ -218,7 +282,8 @@ const TrainingListPage = () => {
     type: selectedType || undefined,
     mode: selectedMode || undefined,
     status: selectedStatus || undefined,
-    financialYear: selectedFY || undefined
+    financialYear: selectedFY || undefined,
+    filterOperator
   };
 
   return (
@@ -245,6 +310,16 @@ const TrainingListPage = () => {
 
           <ExportButtons reportType="records" filters={activeFilters} />
 
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDeleteTrigger}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition-all duration-200 cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          )}
+
           <Link
             to="/training/add"
             className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-md shadow-brand-750/20 transition-all duration-200"
@@ -258,6 +333,38 @@ const TrainingListPage = () => {
       {/* Filter panel */}
       {showFilters && (
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100 dark:border-slate-800/50 gap-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Search & Filters</span>
+            
+            {/* Match Mode Segmented Control */}
+            <div className="flex items-center space-x-2 text-[11px]">
+              <span className="text-slate-500 font-semibold uppercase tracking-wider">Match Mode:</span>
+              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-50 dark:bg-slate-950">
+                <button
+                  type="button"
+                  onClick={() => setFilterOperator('and')}
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded-md transition-all ${
+                    filterOperator === 'and'
+                      ? 'bg-slate-900 text-white dark:bg-brand-700'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  AND (All)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterOperator('or')}
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded-md transition-all ${
+                    filterOperator === 'or'
+                      ? 'bg-slate-900 text-white dark:bg-brand-700'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  OR (Any)
+                </button>
+              </div>
+            </div>
+          </div>
           <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
             
             {/* Search Input */}
@@ -404,8 +511,12 @@ const TrainingListPage = () => {
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleDeleteConfirm}
-        title="Confirm Record Deletion"
-        message="Are you sure you want to delete this training record? This action cannot be undone."
+        title={isBulkDelete ? "Confirm Bulk Deletion" : "Confirm Record Deletion"}
+        message={
+          isBulkDelete
+            ? `Are you sure you want to delete the ${selectedIds.length} selected training records? This action cannot be undone.`
+            : "Are you sure you want to delete this training record? This action cannot be undone."
+        }
       />
 
       <ToastContainer position="top-right" autoClose={5000} />

@@ -77,7 +77,9 @@ const LoginPage = () => {
             <div className="inline-flex p-2.5 bg-white rounded-2xl shadow-md border border-slate-250/20">
               <img src={cdotLogo} alt="CDOT Logo" className="w-12 h-12 object-contain" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">CDOT Training System</h2>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {localStorage.getItem('tms_systemName') || 'CDOT Training System'}
+            </h2>
             <p className="text-sm text-slate-500">Sign in to manage training records</p>
           </div>
 
