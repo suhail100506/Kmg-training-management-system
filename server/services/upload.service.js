@@ -384,6 +384,8 @@ const processBulkUpload = async (filePath, batchId, userId) => {
             createdBy: userId
           });
           await newStaff.save();
+          const { syncStaffMasterFields } = require('../utils/masterSync');
+          await syncStaffMasterFields(newStaff);
           staff = newStaff.toObject();
           staffMap.set(staffNumber.toUpperCase(), staff);
         } catch (err) {
@@ -428,6 +430,8 @@ const processBulkUpload = async (filePath, batchId, userId) => {
             productDivisionCategory: staff.productDivisionCategory,
             reportingGLManagerName: staff.reportingGLManagerName
           });
+          const { syncStaffMasterFields } = require('../utils/masterSync');
+          await syncStaffMasterFields(staff);
           staffMap.set(staffNumber.toUpperCase(), staff);
         }
       }
@@ -792,6 +796,8 @@ const processStaffBulkUpload = async (filePath, batchId, userId) => {
               superannuationDate,
               updatedBy: userId
             });
+            const { syncStaffMasterFields } = require('../utils/masterSync');
+            await syncStaffMasterFields({ designation, groupName, productDivisionCategory });
             
             // Log reactivation in audit log
             await logAudit({
@@ -858,6 +864,8 @@ const processStaffBulkUpload = async (filePath, batchId, userId) => {
           createdBy: userId
         });
         await staffObj.save();
+        const { syncStaffMasterFields } = require('../utils/masterSync');
+        await syncStaffMasterFields(staffObj);
         
         dbStaffMap.set(staffNumberUpper, staffObj.toObject());
         successCount++;

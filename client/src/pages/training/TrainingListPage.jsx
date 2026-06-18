@@ -33,6 +33,10 @@ const TrainingListPage = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedFY, setSelectedFY] = useState('');
   const [filterOperator, setFilterOperator] = useState('and');
+  const [trainingTopic, setTrainingTopic] = useState('');
+  const [trainingModuleNumber, setTrainingModuleNumber] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Dropdown Caches
   const [groups, setGroups] = useState([]);
@@ -80,7 +84,11 @@ const TrainingListPage = () => {
         mode: selectedMode || undefined,
         status: selectedStatus || undefined,
         financialYear: selectedFY || undefined,
-        filterOperator: filterOperator
+        filterOperator: filterOperator,
+        trainingTopic: trainingTopic || undefined,
+        trainingModuleNumber: trainingModuleNumber || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined
       };
 
       const response = await trainingApi.getTrainingRecords(params);
@@ -121,6 +129,10 @@ const TrainingListPage = () => {
     setSelectedStatus('');
     setSelectedFY('');
     setFilterOperator('and');
+    setTrainingTopic('');
+    setTrainingModuleNumber('');
+    setStartDate('');
+    setEndDate('');
     toast.info('Filters cleared');
   };
 
@@ -283,7 +295,11 @@ const TrainingListPage = () => {
     mode: selectedMode || undefined,
     status: selectedStatus || undefined,
     financialYear: selectedFY || undefined,
-    filterOperator
+    filterOperator,
+    trainingTopic: trainingTopic || undefined,
+    trainingModuleNumber: trainingModuleNumber || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined
   };
 
   return (
@@ -365,38 +381,88 @@ const TrainingListPage = () => {
               </div>
             </div>
           </div>
-          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             
             {/* Search Input */}
-            <div className="relative md:col-span-2">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search staff, code, or training module topics..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
+            <div className="relative md:col-span-2 lg:col-span-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Global Keyword Search</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <Search className="w-4 h-4" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search staff, code, or topics..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
             </div>
 
-            {/* Staff Number Autocomplete Input */}
+            {/* Staff Number Input */}
             <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Number</label>
               <input
                 type="text"
                 placeholder="Filter Staff Number"
                 value={staffNumber}
                 onChange={(e) => setStaffNumber(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            {/* Training Topic Input */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Training Topic</label>
+              <input
+                type="text"
+                placeholder="Filter Training Topic"
+                value={trainingTopic}
+                onChange={(e) => setTrainingTopic(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            {/* Module Number Input */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Module Number</label>
+              <input
+                type="text"
+                placeholder="Filter Module Number"
+                value={trainingModuleNumber}
+                onChange={(e) => setTrainingModuleNumber(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            {/* Start Date Datepicker */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            {/* End Date Datepicker */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 className="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
 
             {/* Submit search */}
-            <div>
+            <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full py-2 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl text-xs transition-all duration-200 flex items-center justify-center space-x-1.5 shadow-sm"
+                className="w-full py-2.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl text-xs transition-all duration-200 flex items-center justify-center space-x-1.5 shadow-sm h-[38px]"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Search</span>

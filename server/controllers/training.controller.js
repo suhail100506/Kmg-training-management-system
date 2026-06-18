@@ -33,7 +33,9 @@ const getTrainingRecords = async (req, res, next) => {
       quarter,
       financialYear,
       search,
-      filterOperator
+      filterOperator,
+      trainingTopic,
+      trainingModuleNumber
     } = req.query;
 
     const query = { isDeleted: false };
@@ -59,6 +61,12 @@ const getTrainingRecords = async (req, res, next) => {
       }
       if (division) {
         conditions.push({ productDivisionCategory: division });
+      }
+      if (trainingTopic) {
+        conditions.push({ trainingTopic: new RegExp(trainingTopic, 'i') });
+      }
+      if (trainingModuleNumber) {
+        conditions.push({ trainingModuleNumber: { $regex: `^${trainingModuleNumber.trim()}$`, $options: 'i' } });
       }
 
       if (search) {
@@ -161,6 +169,12 @@ const getTrainingRecords = async (req, res, next) => {
       }
       if (division) {
         query.productDivisionCategory = division;
+      }
+      if (trainingTopic) {
+        query.trainingTopic = new RegExp(trainingTopic, 'i');
+      }
+      if (trainingModuleNumber) {
+        query.trainingModuleNumber = { $regex: `^${trainingModuleNumber.trim()}$`, $options: 'i' };
       }
 
       // Free text search across staffName, staffNumber, trainingTopic
@@ -296,8 +310,6 @@ const createTrainingRecord = async (req, res, next) => {
       trainingCostPerPerson
     } = req.body;
 
-    const isProcessedDateProvided = requestProcessedDate !== undefined && requestProcessedDate !== '';
-
     // Validate request
     if (
       !staffNumber ||
@@ -308,7 +320,6 @@ const createTrainingRecord = async (req, res, next) => {
       !trainingDurationHours ||
       !startDateOfTraining ||
       !endDateOfTraining ||
-      !isProcessedDateProvided ||
       !trainingStatus
     ) {
       return sendError(res, 'All required training fields are missing', [], 400);

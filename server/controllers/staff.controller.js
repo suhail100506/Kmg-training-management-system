@@ -88,6 +88,9 @@ const createStaff = async (req, res, next) => {
 
         await existingStaff.save();
 
+        const { syncStaffMasterFields } = require('../utils/masterSync');
+        await syncStaffMasterFields(existingStaff);
+
         await logAudit({
           userId: req.user._id,
           userEmail: req.user.email,
@@ -121,6 +124,9 @@ const createStaff = async (req, res, next) => {
     });
 
     await newStaff.save();
+
+    const { syncStaffMasterFields } = require('../utils/masterSync');
+    await syncStaffMasterFields(newStaff);
 
     await logAudit({
       userId: req.user._id,
@@ -194,6 +200,9 @@ const updateStaff = async (req, res, next) => {
 
     staff.updatedBy = req.user._id;
     await staff.save();
+
+    const { syncStaffMasterFields } = require('../utils/masterSync');
+    await syncStaffMasterFields(staff);
 
     await logAudit({
       userId: req.user._id,

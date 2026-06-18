@@ -443,7 +443,7 @@ const TrainingAddPage = () => {
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center">
-                  <span>Request Processed Date*</span>
+                  <span>Request Processed Date</span>
                 </label>
                 <div className="relative">
                   <Controller
@@ -488,6 +488,7 @@ const TrainingAddPage = () => {
                 <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Training Cost per Person (₹)</label>
                 <input
                   type="number"
+                  step="any"
                   placeholder="0"
                   className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 dark:text-white ${
                     errors.trainingCostPerPerson ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
