@@ -116,13 +116,16 @@ const UserListPage = () => {
         <div className="flex items-center space-x-2">
           {/* Status Toggle */}
           <button
-            onClick={() => handleToggleStatus(row)}
+            onClick={() => row.role !== 'super_admin' && handleToggleStatus(row)}
+            disabled={row.role === 'super_admin'}
             className={`p-1 transition-colors ${
-              row.isActive 
-                ? 'text-emerald-600 hover:text-emerald-700' 
-                : 'text-slate-400 hover:text-slate-600'
+              row.role === 'super_admin'
+                ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50'
+                : row.isActive 
+                  ? 'text-emerald-600 hover:text-emerald-700' 
+                  : 'text-slate-400 hover:text-slate-600'
             }`}
-            title={row.isActive ? 'Deactivate User' : 'Activate User'}
+            title={row.role === 'super_admin' ? 'Cannot Deactivate Super Admin' : (row.isActive ? 'Deactivate User' : 'Activate User')}
           >
             {row.isActive ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
           </button>
@@ -136,9 +139,14 @@ const UserListPage = () => {
           </Link>
           
           <button
-            onClick={() => handleDeleteTrigger(row._id)}
-            className="p-1 text-slate-500 hover:text-red-655"
-            title="Delete User"
+            onClick={() => row.role !== 'super_admin' && handleDeleteTrigger(row._id)}
+            disabled={row.role === 'super_admin'}
+            className={`p-1 transition-colors ${
+              row.role === 'super_admin'
+                ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50'
+                : 'text-slate-500 hover:text-red-655'
+            }`}
+            title={row.role === 'super_admin' ? 'Cannot Delete Super Admin' : 'Delete User'}
           >
             <Trash2 className="w-4 h-4" />
           </button>

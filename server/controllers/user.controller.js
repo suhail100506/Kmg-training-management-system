@@ -65,16 +65,55 @@ const createUser = async (req, res, next) => {
       ], 400);
     }
 
-    // 2. Check if user already exists
-    const userExists = await User.findOne({
-      $or: [{ staffNumber }, { email: email.toLowerCase() }],
-      isDeleted: false
+    // 2. Check if user already exists (active or soft-deleted)
+    const existingUser = await User.findOne({
+      $or: [{ staffNumber }, { email: email.toLowerCase() }]
     });
 
-    if (userExists) {
-      return sendError(res, 'A user with this Staff Number or Email already exists', [
-        { field: 'staffNumber', message: 'User already exists' }
-      ], 409);
+    if (existingUser) {
+      if (existingUser.isDeleted) {
+        // Reactivate/restore the soft-deleted user
+        const salt = await bcrypt.genSalt(12);
+        const passwordHash = await bcrypt.hash(temporaryPassword, salt);
+
+        existingUser.isDeleted = false;
+        existingUser.isActive = true;
+        existingUser.name = staff.staffName;
+        existingUser.email = email.toLowerCase();
+        existingUser.role = role;
+        existingUser.passwordHash = passwordHash;
+        existingUser.updatedBy = req.user._id;
+
+        await existingUser.save();
+
+        await logAudit({
+          userId: req.user._id,
+          userEmail: req.user.email,
+          action: AUDIT_ACTIONS.UPDATE,
+          module: 'User',
+          recordId: existingUser._id,
+          after: {
+            staffNumber,
+            name: staff.staffName,
+            email: email.toLowerCase(),
+            role,
+            isActive: true
+          },
+          ipAddress: req.ip
+        });
+
+        return sendSuccess(res, 'User created successfully', {
+          id: existingUser._id,
+          staffNumber,
+          name: staff.staffName,
+          email: existingUser.email,
+          role
+        }, null, 201);
+      } else {
+        return sendError(res, 'A user with this Staff Number or Email already exists', [
+          { field: 'staffNumber', message: 'User already exists' }
+        ], 409);
+      }
     }
 
     // 3. Check active count limits (exactly 1 active super_admin and 6 active admins)
@@ -344,6 +383,11 @@ const deleteUser = async (req, res, next) => {
 
     if (user._id.toString() === req.user._id.toString()) {
       return sendError(res, 'You cannot delete your own account', [], 400);
+    }
+
+    // Safety check: Prevent deletion of Super Admin
+    if (user.role === ROLES.SUPER_ADMIN || user.staffNumber === 'S00001') {
+      return sendError(res, 'Cannot delete the Super Admin user account. At least one Super Admin must remain in the system.', [], 400);
     }
 
     user.isDeleted = true;

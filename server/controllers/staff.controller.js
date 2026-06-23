@@ -231,6 +231,11 @@ const deleteStaff = async (req, res, next) => {
       return sendError(res, 'Staff member not found', [], 404);
     }
 
+    // Safety check: Prevent deletion of Super Admin (S00001)
+    if (staff.staffNumber === 'S00001') {
+      return sendError(res, 'Cannot delete the Super Admin profile. At least one Super Admin must remain in the system.', [], 400);
+    }
+
     const before = staff.toObject();
 
     staff.isDeleted = true;
@@ -294,6 +299,12 @@ const deleteStaffBulk = async (req, res, next) => {
     const records = await Staff.find({ _id: { $in: ids }, isDeleted: false });
     if (records.length === 0) {
       return sendError(res, 'No matching active staff profiles found for the provided IDs', [], 404);
+    }
+
+    // Safety check: Prevent deletion of Super Admin (S00001)
+    const hasSuperAdmin = records.some(record => record.staffNumber === 'S00001');
+    if (hasSuperAdmin) {
+      return sendError(res, 'Bulk deletion rejected: Cannot delete the Super Admin profile. At least one Super Admin must remain in the system.', [], 400);
     }
 
     const deletedIds = [];

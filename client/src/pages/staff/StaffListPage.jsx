@@ -64,7 +64,7 @@ const StaffListPage = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(staff.map(s => s._id));
+      setSelectedIds(staff.filter(s => s.staffNumber !== 'S00001').map(s => s._id));
     } else {
       setSelectedIds([]);
     }
@@ -122,7 +122,7 @@ const StaffListPage = () => {
       header: (
         <input
           type="checkbox"
-          checked={staff.length > 0 && selectedIds.length === staff.length}
+          checked={staff.length > 0 && staff.filter(s => s.staffNumber !== 'S00001').length > 0 && selectedIds.length === staff.filter(s => s.staffNumber !== 'S00001').length}
           onChange={handleSelectAll}
           className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
         />
@@ -131,8 +131,11 @@ const StaffListPage = () => {
         <input
           type="checkbox"
           checked={selectedIds.includes(row._id)}
+          disabled={row.staffNumber === 'S00001'}
           onChange={(e) => handleSelectRow(row._id, e.target.checked)}
-          className="rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 cursor-pointer"
+          className={`rounded border-slate-350 dark:border-slate-800 text-brand-700 focus:ring-brand-500 bg-white dark:bg-slate-900 ${
+            row.staffNumber === 'S00001' ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'
+          }`}
         />
       )
     },
@@ -180,9 +183,14 @@ const StaffListPage = () => {
             <Edit className="w-4 h-4" />
           </Link>
           <button
-            onClick={() => handleDeleteTrigger(row._id)}
-            className="p-1 text-slate-500 hover:text-red-600"
-            title="Delete Profile"
+            onClick={() => row.staffNumber !== 'S00001' && handleDeleteTrigger(row._id)}
+            disabled={row.staffNumber === 'S00001'}
+            className={`p-1 transition-colors ${
+              row.staffNumber === 'S00001'
+                ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40'
+                : 'text-slate-500 hover:text-red-600'
+            }`}
+            title={row.staffNumber === 'S00001' ? 'Cannot Delete Super Admin' : 'Delete Profile'}
           >
             <Trash2 className="w-4 h-4" />
           </button>
