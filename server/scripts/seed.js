@@ -96,7 +96,15 @@ const seedDatabase = async () => {
       // Departments
       { type: MASTER_DATA_TYPES.DEPARTMENT, value: 'IT' },
       { type: MASTER_DATA_TYPES.DEPARTMENT, value: 'HR' },
-      { type: MASTER_DATA_TYPES.DEPARTMENT, value: 'Finance' }
+      { type: MASTER_DATA_TYPES.DEPARTMENT, value: 'Finance' },
+
+      // Training Types
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'OT' },
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'ILT' },
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'Blended' },
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'Training for external members' },
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'Group specific' },
+      { type: MASTER_DATA_TYPES.TYPE_OF_TRAINING, value: 'Others' }
     ];
 
     for (const item of masterDataList) {

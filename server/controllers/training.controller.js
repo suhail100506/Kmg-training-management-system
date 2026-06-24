@@ -307,7 +307,8 @@ const createTrainingRecord = async (req, res, next) => {
       endDateOfTraining,
       requestProcessedDate,
       trainingStatus,
-      trainingCostPerPerson
+      trainingCostPerPerson,
+      remarks
     } = req.body;
 
     // Validate request
@@ -412,6 +413,7 @@ const createTrainingRecord = async (req, res, next) => {
       requestProcessedDate: processed,
       trainingStatus,
       trainingCostPerPerson: trainingCostPerPerson || 0,
+      remarks: remarks || '',
       createdBy: req.user._id
     });
 
@@ -470,7 +472,8 @@ const updateTrainingRecord = async (req, res, next) => {
       endDateOfTraining,
       requestProcessedDate,
       trainingStatus,
-      trainingCostPerPerson
+      trainingCostPerPerson,
+      remarks
     } = req.body;
 
     const before = record.toObject();
@@ -537,6 +540,7 @@ const updateTrainingRecord = async (req, res, next) => {
     if (requestProcessedDate !== undefined) record.requestProcessedDate = processed;
     if (trainingStatus !== undefined) record.trainingStatus = trainingStatus;
     if (trainingCostPerPerson !== undefined) record.trainingCostPerPerson = trainingCostPerPerson;
+    if (remarks !== undefined) record.remarks = remarks;
 
     record.updatedBy = req.user._id;
     await record.save();

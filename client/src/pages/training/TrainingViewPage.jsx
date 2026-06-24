@@ -209,6 +209,14 @@ const TrainingViewPage = () => {
               </div>
             </div>
 
+            {/* Remarks (Optional) - Full Width */}
+            <div className="space-y-1.5 md:col-span-2 pt-3 border-t border-slate-100 dark:border-slate-850">
+              <p className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold">Remarks</p>
+              <p className="font-semibold text-slate-805 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                {record.remarks || '—'}
+              </p>
+            </div>
+
           </div>
 
           {/* Audit trail info */}

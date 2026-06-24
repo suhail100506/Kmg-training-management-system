@@ -72,22 +72,26 @@ const Navbar = ({ toggleSidebar }) => {
         </button>
 
         {/* Breadcrumbs */}
-        <nav className="hidden sm:flex items-center space-x-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-          <Link to="/dashboard" className="hover:text-brand-700 dark:hover:text-brand-400">Home</Link>
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={crumb.path}>
-              <ChevronRight className="w-3 h-3 text-slate-400" />
-              <Link 
-                to={crumb.path} 
-                className={`hover:text-brand-700 dark:hover:text-brand-400 ${
-                  idx === breadcrumbs.length - 1 ? 'text-slate-900 dark:text-white font-semibold' : ''
-                }`}
-              >
-                {crumb.label}
-              </Link>
-            </React.Fragment>
-          ))}
-        </nav>
+        {!user?.mustChangePassword ? (
+          <nav className="hidden sm:flex items-center space-x-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <Link to="/dashboard" className="hover:text-brand-700 dark:hover:text-brand-400">Home</Link>
+            {breadcrumbs.map((crumb, idx) => (
+              <React.Fragment key={crumb.path}>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <Link 
+                  to={crumb.path} 
+                  className={`hover:text-brand-700 dark:hover:text-brand-400 ${
+                    idx === breadcrumbs.length - 1 ? 'text-slate-900 dark:text-white font-semibold' : ''
+                  }`}
+                >
+                  {crumb.label}
+                </Link>
+              </React.Fragment>
+            ))}
+          </nav>
+        ) : (
+          <span className="text-xs font-bold text-slate-500">Security Configuration</span>
+        )}
       </div>
 
       {/* Right section: Dark Mode toggle & User actions */}

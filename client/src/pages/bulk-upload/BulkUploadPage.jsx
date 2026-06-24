@@ -198,6 +198,7 @@ const BulkUploadPage = () => {
               <li><strong>Request Processed Date:</strong> REQUIRED. Format DD/MM/YYYY or YYYY-MM-DD (must be &gt;= Start Date)</li>
               <li><strong>Start / End Date:</strong> logical date ordering</li>
               <li><strong>Training Status:</strong> Completed, Not Completed, Cancelled</li>
+              <li><strong>Remarks:</strong> OPTIONAL. Additional notes or comments about the training</li>
             </ul>
             <div className="pt-2">
               <button

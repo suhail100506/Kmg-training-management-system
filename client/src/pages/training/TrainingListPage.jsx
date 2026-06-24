@@ -41,6 +41,7 @@ const TrainingListPage = () => {
   // Dropdown Caches
   const [groups, setGroups] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [types, setTypes] = useState(TRAINING_TYPE_OPTIONS);
   const [fyOptions, setFYOptions] = useState(['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27']);
 
   const [records, setRecords] = useState([]);
@@ -57,12 +58,16 @@ const TrainingListPage = () => {
   useEffect(() => {
     const fetchMasterOptions = async () => {
       try {
-        const [gRes, dRes] = await Promise.all([
+        const [gRes, dRes, tRes] = await Promise.all([
           masterApi.getMasterData('groupName'),
-          masterApi.getMasterData('productDivision')
+          masterApi.getMasterData('productDivision'),
+          masterApi.getMasterData('typeOfTraining')
         ]);
         setGroups(gRes.data.data);
         setDivisions(dRes.data.data);
+        if (tRes.data.data && tRes.data.data.length > 0) {
+          setTypes(tRes.data.data);
+        }
       } catch (err) {
         console.error('Failed to load filters:', err);
       }
@@ -504,7 +509,7 @@ const TrainingListPage = () => {
                 className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-350"
               >
                 <option value="">Type: All</option>
-                {TRAINING_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {types.map(o => <option key={o._id} value={o.value}>{o.value}</option>)}
               </select>
             </div>
 

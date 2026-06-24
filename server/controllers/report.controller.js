@@ -929,7 +929,8 @@ const exportReport = async (req, res, next) => {
         'End Date': new Date(r.endDateOfTraining).toISOString().split('T')[0],
         'Request Processed Date': r.requestProcessedDate ? new Date(r.requestProcessedDate).toISOString().split('T')[0] : '-',
         Status: r.trainingStatus,
-        'Cost (₹)': r.trainingCostPerPerson
+        'Cost (₹)': r.trainingCostPerPerson,
+        Remarks: r.remarks || ''
       }));
     }
 

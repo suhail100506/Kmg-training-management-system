@@ -76,6 +76,10 @@ const trainingRecordSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  remarks: {
+    type: String,
+    required: false
+  },
 
   // Meta
   isDeleted: {

@@ -62,8 +62,8 @@ const StaffAddPage = () => {
     try {
       await staffApi.createStaff({
         ...data,
-        dateOfJoining: data.dateOfJoining ? new Date(data.dateOfJoining).toISOString().split('T')[0] : undefined,
-        superannuationDate: data.superannuationDate ? new Date(data.superannuationDate).toISOString().split('T')[0] : undefined
+        dateOfJoining: data.dateOfJoining ? new Date(data.dateOfJoining).toISOString().split('T')[0] : null,
+        superannuationDate: data.superannuationDate ? new Date(data.superannuationDate).toISOString().split('T')[0] : null
       });
 
       toast.success('Staff member registered successfully!');

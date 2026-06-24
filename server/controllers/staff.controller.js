@@ -72,41 +72,38 @@ const createStaff = async (req, res, next) => {
     // Check unique staff number (both active and soft-deleted)
     const existingStaff = await Staff.findOne({ staffNumber });
     if (existingStaff) {
-      if (existingStaff.isDeleted) {
-        // Reactivate/restore the soft-deleted staff member
-        existingStaff.isDeleted = false;
-        existingStaff.staffName = staffName;
-        existingStaff.emailId = emailId ? emailId.toLowerCase() : undefined;
-        existingStaff.designation = designation;
-        existingStaff.groupName = groupName;
-        existingStaff.productDivisionCategory = productDivisionCategory;
-        existingStaff.reportingGLManagerName = reportingGLManagerName;
-        existingStaff.employmentStatus = employmentStatus;
-        existingStaff.dateOfJoining = dateOfJoining ? new Date(dateOfJoining) : undefined;
-        existingStaff.superannuationDate = superannuationDate ? new Date(superannuationDate) : undefined;
-        existingStaff.updatedBy = req.user._id;
+      const before = existingStaff.toObject();
 
-        await existingStaff.save();
+      // Reactivate if soft-deleted, and update details in all cases
+      existingStaff.isDeleted = false;
+      existingStaff.staffName = staffName;
+      existingStaff.emailId = emailId ? emailId.toLowerCase() : null;
+      existingStaff.designation = designation;
+      existingStaff.groupName = groupName;
+      existingStaff.productDivisionCategory = productDivisionCategory;
+      existingStaff.reportingGLManagerName = reportingGLManagerName;
+      existingStaff.employmentStatus = employmentStatus;
+      existingStaff.dateOfJoining = dateOfJoining ? new Date(dateOfJoining) : null;
+      existingStaff.superannuationDate = superannuationDate ? new Date(superannuationDate) : null;
+      existingStaff.updatedBy = req.user._id;
 
-        const { syncStaffMasterFields } = require('../utils/masterSync');
-        await syncStaffMasterFields(existingStaff);
+      await existingStaff.save();
 
-        await logAudit({
-          userId: req.user._id,
-          userEmail: req.user.email,
-          action: AUDIT_ACTIONS.UPDATE,
-          module: 'Staff',
-          recordId: existingStaff._id,
-          after: existingStaff.toObject(),
-          ipAddress: req.ip
-        });
+      const { syncStaffMasterFields } = require('../utils/masterSync');
+      await syncStaffMasterFields(existingStaff);
 
-        return sendSuccess(res, 'Staff member created successfully', existingStaff, null, 201);
-      } else {
-        return sendError(res, `Staff member with number ${staffNumber} already exists`, [
-          { field: 'staffNumber', message: 'Staff number already exists' }
-        ], 409);
-      }
+      await logAudit({
+        userId: req.user._id,
+        userEmail: req.user.email,
+        action: AUDIT_ACTIONS.UPDATE,
+        module: 'Staff',
+        recordId: existingStaff._id,
+        before,
+        after: existingStaff.toObject(),
+        ipAddress: req.ip
+      });
+
+      return sendSuccess(res, 'Staff member details updated/replaced successfully', existingStaff, null, 200);
     }
 
     const newStaff = new Staff({
@@ -118,8 +115,8 @@ const createStaff = async (req, res, next) => {
       productDivisionCategory,
       reportingGLManagerName,
       employmentStatus,
-      dateOfJoining: dateOfJoining ? new Date(dateOfJoining) : undefined,
-      superannuationDate: superannuationDate ? new Date(superannuationDate) : undefined,
+      dateOfJoining: dateOfJoining ? new Date(dateOfJoining) : null,
+      superannuationDate: superannuationDate ? new Date(superannuationDate) : null,
       createdBy: req.user._id
     });
 
@@ -191,7 +188,7 @@ const updateStaff = async (req, res, next) => {
         if (field === 'emailId') {
           staff[field] = updates[field] ? updates[field].toLowerCase() : undefined;
         } else if (field === 'dateOfJoining' || field === 'superannuationDate') {
-          staff[field] = updates[field] ? new Date(updates[field]) : undefined;
+          staff[field] = updates[field] ? new Date(updates[field]) : null;
         } else {
           staff[field] = updates[field];
         }

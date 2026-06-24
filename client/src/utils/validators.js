@@ -66,8 +66,7 @@ export const trainingRecordSchema = yup.object().shape({
   trainingInstituteName: yup.string().nullable(),
   typeOfTraining: yup
     .string()
-    .required('Type of Training is required')
-    .oneOf(['OT', 'ILT', 'Blended', 'Training for external members', 'Group specific', 'Others']),
+    .required('Type of Training is required'),
   trainingMode: yup
     .string()
     .required('Training Mode is required')
@@ -113,5 +112,9 @@ export const trainingRecordSchema = yup.object().shape({
     .number()
     .typeError('Cost must be a number')
     .min(0, 'Cost cannot be negative')
-    .default(0)
+    .default(0),
+  remarks: yup
+    .string()
+    .nullable()
+    .transform((v) => (v === '' ? null : v))
 });

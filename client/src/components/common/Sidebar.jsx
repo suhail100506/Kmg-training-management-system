@@ -51,19 +51,32 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const superAdminOnly = isSuperAdmin(user);
 
-  const navClass = ({ isActive }) => 
-    `flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
-      isActive 
-        ? 'bg-brand-700 text-white shadow-sm' 
-        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
-    }`;
+  const isLinkDisabled = (to) => {
+    if (!user?.mustChangePassword) return false;
+    return to !== '/change-password';
+  };
 
-  const subNavClass = ({ isActive }) => 
-    `flex items-center space-x-3 pl-12 pr-4 py-2 rounded-lg transition-all duration-200 text-xs font-medium ${
-      isActive 
-        ? 'text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/45 font-semibold' 
-        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-850 dark:hover:text-white'
+  const navClass = (to) => ({ isActive }) => {
+    const disabled = isLinkDisabled(to);
+    return `flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
+      disabled
+        ? 'opacity-40 cursor-not-allowed pointer-events-none'
+        : isActive 
+          ? 'bg-brand-700 text-white shadow-sm' 
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
     }`;
+  };
+
+  const subNavClass = (to) => ({ isActive }) => {
+    const disabled = isLinkDisabled(to);
+    return `flex items-center space-x-3 pl-12 pr-4 py-2 rounded-lg transition-all duration-200 text-xs font-medium ${
+      disabled
+        ? 'opacity-40 cursor-not-allowed pointer-events-none'
+        : isActive 
+          ? 'text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/45 font-semibold' 
+          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-850 dark:hover:text-white'
+    }`;
+  };
 
   return (
     <>
@@ -112,7 +125,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
           {/* Navigation Links */}
           <nav className="flex-1 px-4 space-y-1.5 pb-6">
-            <NavLink to="/dashboard" className={navClass} onClick={() => toggleSidebar(false)}>
+            <NavLink to="/dashboard" className={navClass('/dashboard')} onClick={() => toggleSidebar(false)}>
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard</span>
             </NavLink>
@@ -120,8 +133,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             {/* Collapsible: Training Records */}
             <div>
               <button 
-                onClick={() => setRecordsOpen(!recordsOpen)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200"
+                onClick={() => !user?.mustChangePassword && setRecordsOpen(!recordsOpen)}
+                disabled={user?.mustChangePassword}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  user?.mustChangePassword
+                    ? 'opacity-40 cursor-not-allowed pointer-events-none text-slate-400'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <FileSpreadsheet className="w-4 h-4" />
@@ -132,26 +150,26 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
               {recordsOpen && (
                 <div className="mt-1 space-y-1">
-                  <NavLink to="/training" className={subNavClass} end onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/training" className={subNavClass('/training')} end onClick={() => toggleSidebar(false)}>
                     <span>All Records</span>
                   </NavLink>
-                  <NavLink to="/training/add" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/training/add" className={subNavClass('/training/add')} onClick={() => toggleSidebar(false)}>
                     <span>Add Record</span>
                   </NavLink>
-                  <NavLink to="/bulk-upload" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/bulk-upload" className={subNavClass('/bulk-upload')} onClick={() => toggleSidebar(false)}>
                     <span>Bulk Upload</span>
                   </NavLink>
                 </div>
               )}
             </div>
 
-            <NavLink to="/staff" className={navClass} onClick={() => toggleSidebar(false)}>
+            <NavLink to="/staff" className={navClass('/staff')} onClick={() => toggleSidebar(false)}>
               <Users className="w-4 h-4" />
               <span>Staff Master</span>
             </NavLink>
 
             {superAdminOnly && (
-              <NavLink to="/users" className={navClass} onClick={() => toggleSidebar(false)}>
+              <NavLink to="/users" className={navClass('/users')} onClick={() => toggleSidebar(false)}>
                 <ShieldCheck className="w-4 h-4" />
                 <span>User Management</span>
               </NavLink>
@@ -160,8 +178,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             {/* Collapsible: Reports */}
             <div>
               <button 
-                onClick={() => setReportsOpen(!reportsOpen)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all duration-200"
+                onClick={() => !user?.mustChangePassword && setReportsOpen(!reportsOpen)}
+                disabled={user?.mustChangePassword}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  user?.mustChangePassword
+                    ? 'opacity-40 cursor-not-allowed pointer-events-none text-slate-400'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="w-4 h-4" />
@@ -172,35 +195,35 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
               {reportsOpen && (
                 <div className="mt-1 space-y-1">
-                  <NavLink to="/reports/monthly" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/monthly" className={subNavClass('/reports/monthly')} onClick={() => toggleSidebar(false)}>
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Monthly Report</span>
                   </NavLink>
-                  <NavLink to="/reports/quarterly" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/quarterly" className={subNavClass('/reports/quarterly')} onClick={() => toggleSidebar(false)}>
                     <CalendarDays className="w-3.5 h-3.5" />
                     <span>Quarterly Report</span>
                   </NavLink>
-                  <NavLink to="/reports/financial-year" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/financial-year" className={subNavClass('/reports/financial-year')} onClick={() => toggleSidebar(false)}>
                     <FileBarChart className="w-3.5 h-3.5" />
                     <span>FY Report</span>
                   </NavLink>
-                  <NavLink to="/reports/staff-wise" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/staff-wise" className={subNavClass('/reports/staff-wise')} onClick={() => toggleSidebar(false)}>
                     <UserCheck className="w-3.5 h-3.5" />
                     <span>Staff-Wise</span>
                   </NavLink>
-                  <NavLink to="/reports/department-wise" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/department-wise" className={subNavClass('/reports/department-wise')} onClick={() => toggleSidebar(false)}>
                     <Building2 className="w-3.5 h-3.5" />
                     <span>Group-Wise</span>
                   </NavLink>
-                  <NavLink to="/reports/cost-analysis" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/cost-analysis" className={subNavClass('/reports/cost-analysis')} onClick={() => toggleSidebar(false)}>
                     <IndianRupee className="w-3.5 h-3.5" />
                     <span>Cost Analysis</span>
                   </NavLink>
-                  <NavLink to="/reports/training-status" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/training-status" className={subNavClass('/reports/training-status')} onClick={() => toggleSidebar(false)}>
                     <Info className="w-3.5 h-3.5" />
                     <span>Training Status</span>
                   </NavLink>
-                  <NavLink to="/reports/beneficiaries" className={subNavClass} onClick={() => toggleSidebar(false)}>
+                  <NavLink to="/reports/beneficiaries" className={subNavClass('/reports/beneficiaries')} onClick={() => toggleSidebar(false)}>
                     <Layers className="w-3.5 h-3.5" />
                     <span>Beneficiary Report</span>
                   </NavLink>
@@ -209,24 +232,24 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </div>
 
             {superAdminOnly && (
-              <NavLink to="/master" className={navClass} onClick={() => toggleSidebar(false)}>
+              <NavLink to="/master" className={navClass('/master')} onClick={() => toggleSidebar(false)}>
                 <Database className="w-4 h-4" />
                 <span>Master Data</span>
               </NavLink>
             )}
 
-            <NavLink to="/audit" className={navClass} onClick={() => toggleSidebar(false)}>
+            <NavLink to="/audit" className={navClass('/audit')} onClick={() => toggleSidebar(false)}>
               <History className="w-4 h-4" />
               <span>Audit Logs</span>
             </NavLink>
 
-            <NavLink to="/change-password" className={navClass} onClick={() => toggleSidebar(false)}>
+            <NavLink to="/change-password" className={navClass('/change-password')} onClick={() => toggleSidebar(false)}>
               <Lock className="w-4 h-4" />
               <span>Change Password</span>
             </NavLink>
 
             {superAdminOnly && (
-              <NavLink to="/settings" className={navClass} onClick={() => toggleSidebar(false)}>
+              <NavLink to="/settings" className={navClass('/settings')} onClick={() => toggleSidebar(false)}>
                 <Settings className="w-4 h-4" />
                 <span>Settings</span>
               </NavLink>

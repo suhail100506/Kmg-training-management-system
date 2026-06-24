@@ -125,7 +125,8 @@ const downloadTemplate = async (req, res, next) => {
         'End Date',
         'Request Processed Date',
         'Training Status',
-        'Training Cost Per Person'
+        'Training Cost Per Person',
+        'Remarks'
       ];
 
       sampleRow = [
@@ -143,7 +144,8 @@ const downloadTemplate = async (req, res, next) => {
         '17/06/2026',
         '15/06/2026',
         'Completed',
-        '1500'
+        '1500',
+        'Optional comment'
       ];
 
       instructions = [
@@ -161,7 +163,8 @@ const downloadTemplate = async (req, res, next) => {
         ['End Date', 'Yes', 'DD/MM/YYYY or YYYY-MM-DD', 'Date training ended. Must be >= Start Date.'],
         ['Request Processed Date', 'Yes', 'DD/MM/YYYY or YYYY-MM-DD', 'Date request processed. Must be >= Start Date.'],
         ['Training Status', 'Yes', 'Completed, Not Completed, Cancelled', 'Status of completion.'],
-        ['Training Cost Per Person', 'No', 'Number (defaults to 0)', 'Cost per staff member in ₹.']
+        ['Training Cost Per Person', 'No', 'Number (defaults to 0)', 'Cost per staff member in ₹.'],
+        ['Remarks', 'No', 'String', 'Optional remarks/notes about the training.']
       ];
 
       filenameExcel = 'KMG_TMS_Bulk_Upload_Template.xlsx';

@@ -36,7 +36,8 @@ module.exports = {
     DESIGNATION: 'designation',
     GROUP_NAME: 'groupName',
     PRODUCT_DIVISION: 'productDivision',
-    DEPARTMENT: 'department'
+    DEPARTMENT: 'department',
+    TYPE_OF_TRAINING: 'typeOfTraining'
   },
   AUDIT_ACTIONS: {
     CREATE: 'CREATE',

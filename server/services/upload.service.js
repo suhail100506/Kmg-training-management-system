@@ -76,6 +76,7 @@ const processBulkUpload = async (filePath, batchId, userId) => {
       requestProcessedDate: ['request processed date', 'request process date', 'processed date', 'requestprocesseddate'],
       trainingStatus: ['training status', 'status', 'trainingstatus'],
       trainingCostPerPerson: ['training cost per person', 'training cost', 'cost (inr)', 'cost (₹)', 'cost', 'trainingcostperperson'],
+      remarks: ['remarks', 'remark', 'comments', 'comment', 'notes', 'note'],
       staffName: ['staff name', 'name', 'employee name', 'staffname'],
       emailId: ['email id', 'email', 'email address', 'emailid'],
       designation: ['designation', 'role/designation', 'job title'],
@@ -178,6 +179,14 @@ const processBulkUpload = async (filePath, batchId, userId) => {
       staffMap.set(s.staffNumber.toUpperCase(), s);
     });
 
+    // Pre-cache active types of training from Master Data
+    const MasterData = require('../models/MasterData');
+    const masterTypes = await MasterData.find({ type: 'typeOfTraining', isActive: true }).lean();
+    const activeTypes = new Set([
+      ...masterTypes.map(t => t.value.trim().toLowerCase()),
+      ...Object.values(TRAINING_TYPES).map(t => t.trim().toLowerCase())
+    ]);
+
     // Process rows sequentially
     for (let r = headerRowIndex + 1; r < rawRows.length; r++) {
       const row = rawRows[r];
@@ -205,6 +214,7 @@ const processBulkUpload = async (filePath, batchId, userId) => {
       const requestProcessedDateVal = getVal('requestProcessedDate');
       const trainingStatus = String(getVal('trainingStatus')).trim() || '-';
       const trainingCostPerPerson = parseFloat(getVal('trainingCostPerPerson')) || 0;
+      const remarks = String(getVal('remarks')).trim() || '';
 
       // Extract optional staff fields from spreadsheet if available
       const staffName = String(getVal('staffName')).trim() || `Staff ${staffNumber}`;
@@ -217,7 +227,7 @@ const processBulkUpload = async (filePath, batchId, userId) => {
       const dateOfJoiningVal = getVal('dateOfJoining');
       const superannuationDateVal = getVal('superannuationDate');
 
-      const dateOfJoining = parseDateValue(dateOfJoiningVal) || normalizeDateToUTC(new Date());
+      const dateOfJoining = parseDateValue(dateOfJoiningVal) || null;
       const superannuationDate = parseDateValue(superannuationDateVal) || null;
 
       // Construct representative row object for output logs
@@ -234,7 +244,8 @@ const processBulkUpload = async (filePath, batchId, userId) => {
         'End Date': endDateVal,
         'Request Processed Date': requestProcessedDateVal,
         'Training Status': trainingStatus,
-        'Training Cost Per Person': trainingCostPerPerson
+        'Training Cost Per Person': trainingCostPerPerson,
+        'Remarks': remarks
       };
 
       // 1. Check required fields (Mandatory fields are Staff Number and Module Number)
@@ -249,15 +260,14 @@ const processBulkUpload = async (filePath, batchId, userId) => {
       }
 
       // 2. Validate enums
-      const validTypes = Object.values(TRAINING_TYPES);
       const validModes = Object.values(TRAINING_MODES);
       const validStatuses = Object.values(TRAINING_STATUSES);
 
-      if (!validTypes.includes(typeOfTraining)) {
+      if (!activeTypes.has(typeOfTraining.toLowerCase())) {
         errorCount++;
         errors.push({
           row: rowNum,
-          reason: `Invalid Type of Training. Must be one of: ${validTypes.join(', ')}`,
+          reason: `Invalid Type of Training. Must be one of registered master types.`,
           data: rowData
         });
         continue;
@@ -401,6 +411,10 @@ const processBulkUpload = async (filePath, batchId, userId) => {
         // If staff exists but details are placeholders (e.g. "Staff S10002" or "-"), update them with sheet values
         let needsUpdate = false;
         
+        if (emailId && emailId.toLowerCase() !== (staff.emailId || '').toLowerCase()) {
+          staff.emailId = emailId.toLowerCase();
+          needsUpdate = true;
+        }
         if ((staff.staffName.startsWith('Staff ') || staff.staffName === staffNumber) && staffName !== staff.staffName && !staffName.startsWith('Staff ')) {
           staff.staffName = staffName;
           needsUpdate = true;
@@ -424,6 +438,7 @@ const processBulkUpload = async (filePath, batchId, userId) => {
 
         if (needsUpdate) {
           await Staff.updateOne({ _id: staff._id }, {
+            emailId: staff.emailId,
             staffName: staff.staffName,
             groupName: staff.groupName,
             designation: staff.designation,
@@ -479,6 +494,7 @@ const processBulkUpload = async (filePath, batchId, userId) => {
         requestProcessedDate,
         trainingStatus,
         trainingCostPerPerson,
+        remarks,
         uploadBatchId: batchId,
         createdBy: userId
       });
@@ -725,7 +741,7 @@ const processStaffBulkUpload = async (filePath, batchId, userId) => {
       // 4. Parse date fields
       let dateOfJoining = null;
       if (dateOfJoiningVal === undefined || dateOfJoiningVal === '') {
-        dateOfJoining = normalizeDateToUTC(new Date());
+        dateOfJoining = null;
       } else {
         dateOfJoining = parseDateValue(dateOfJoiningVal);
         if (!dateOfJoining) {
@@ -838,12 +854,97 @@ const processStaffBulkUpload = async (filePath, batchId, userId) => {
             continue;
           }
         } else {
-          duplicateCount++;
-          duplicates.push({
-            row: rowNum,
-            reason: `Staff member with number "${staffNumber}" already exists in the roster`,
-            data: rowData
-          });
+          // Overwrite existing active staff member details if changed
+          let needsUpdate = false;
+          const updateData = {};
+
+          if (emailId && emailId.toLowerCase() !== (existing.emailId || '').toLowerCase()) {
+            existing.emailId = emailId.toLowerCase();
+            updateData.emailId = emailId.toLowerCase();
+            needsUpdate = true;
+          }
+          if (staffName && staffName !== existing.staffName) {
+            existing.staffName = staffName;
+            updateData.staffName = staffName;
+            needsUpdate = true;
+          }
+          if (designation && designation !== existing.designation) {
+            existing.designation = designation;
+            updateData.designation = designation;
+            needsUpdate = true;
+          }
+          if (groupName && groupName !== existing.groupName) {
+            existing.groupName = groupName;
+            updateData.groupName = groupName;
+            needsUpdate = true;
+          }
+          if (productDivisionCategory && productDivisionCategory !== existing.productDivisionCategory) {
+            existing.productDivisionCategory = productDivisionCategory;
+            updateData.productDivisionCategory = productDivisionCategory;
+            needsUpdate = true;
+          }
+          if (reportingGLManagerName && reportingGLManagerName !== existing.reportingGLManagerName) {
+            existing.reportingGLManagerName = reportingGLManagerName;
+            updateData.reportingGLManagerName = reportingGLManagerName;
+            needsUpdate = true;
+          }
+          if (employmentStatus && employmentStatus !== existing.employmentStatus) {
+            existing.employmentStatus = employmentStatus;
+            updateData.employmentStatus = employmentStatus;
+            needsUpdate = true;
+          }
+          
+          const existingDojTime = existing.dateOfJoining ? new Date(existing.dateOfJoining).getTime() : null;
+          const newDojTime = dateOfJoining ? new Date(dateOfJoining).getTime() : null;
+          if (newDojTime !== existingDojTime) {
+            existing.dateOfJoining = dateOfJoining;
+            updateData.dateOfJoining = dateOfJoining;
+            needsUpdate = true;
+          }
+
+          const existingSuperTime = existing.superannuationDate ? new Date(existing.superannuationDate).getTime() : null;
+          const newSuperTime = superannuationDate ? new Date(superannuationDate).getTime() : null;
+          if (newSuperTime !== existingSuperTime) {
+            existing.superannuationDate = superannuationDate;
+            updateData.superannuationDate = superannuationDate;
+            needsUpdate = true;
+          }
+
+          if (needsUpdate) {
+            try {
+              updateData.updatedBy = userId;
+              await Staff.updateOne({ _id: existing._id }, { $set: updateData });
+              
+              const { syncStaffMasterFields } = require('../utils/masterSync');
+              await syncStaffMasterFields(existing);
+
+              // Log update in audit log
+              await logAudit({
+                userId,
+                userEmail: (await User.findById(userId))?.email || 'system',
+                action: AUDIT_ACTIONS.UPDATE,
+                module: 'Staff',
+                recordId: existing._id,
+                before: dbStaffMap.get(staffNumberUpper),
+                after: {
+                  ...existing,
+                  ...updateData
+                },
+                ipAddress: 'bulk-import'
+              });
+
+              dbStaffMap.set(staffNumberUpper, existing);
+            } catch (err) {
+              errorCount++;
+              errors.push({
+                row: rowNum,
+                reason: `Failed to update existing staff details: ${err.message}`,
+                data: rowData
+              });
+              continue;
+            }
+          }
+          successCount++;
           continue;
         }
       }

@@ -12,6 +12,7 @@ const FilterPanel = ({ onApply, onReset }) => {
   // Master choices state
   const [groups, setGroups] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [types, setTypes] = useState(TRAINING_TYPE_OPTIONS);
   
   // Selected filter states
   const [financialYear, setFinancialYear] = useState('FY 2025-26');
@@ -27,13 +28,17 @@ const FilterPanel = ({ onApply, onReset }) => {
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
-        const [gRes, dRes] = await Promise.all([
+        const [gRes, dRes, tRes] = await Promise.all([
           masterApi.getMasterData('groupName'),
-          masterApi.getMasterData('productDivision')
+          masterApi.getMasterData('productDivision'),
+          masterApi.getMasterData('typeOfTraining')
         ]);
         
         setGroups(gRes.data.data.map(g => ({ value: g.value, label: g.value })));
         setDivisions(dRes.data.data.map(d => ({ value: d.value, label: d.value })));
+        if (tRes.data.data && tRes.data.data.length > 0) {
+          setTypes(tRes.data.data.map(t => ({ value: t.value, label: t.value })));
+        }
       } catch (err) {
         console.error('Failed to load master dropdown choices:', err);
       }
@@ -217,7 +222,7 @@ const FilterPanel = ({ onApply, onReset }) => {
           <label className="uppercase tracking-wider">Training Types</label>
           <Select
             isMulti
-            options={TRAINING_TYPE_OPTIONS}
+            options={types}
             value={selectedTypes}
             onChange={setSelectedTypes}
             styles={customStyles}

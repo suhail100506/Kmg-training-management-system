@@ -27,7 +27,8 @@ const MasterDataPage = () => {
     { id: 'designation', label: 'Designations' },
     { id: 'groupName', label: 'Group Names' },
     { id: 'productDivision', label: 'Product Divisions' },
-    { id: 'department', label: 'Departments' }
+    { id: 'department', label: 'Departments' },
+    { id: 'typeOfTraining', label: 'Types of Training' }
   ];
 
   const fetchItems = async () => {

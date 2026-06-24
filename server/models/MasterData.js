@@ -8,7 +8,8 @@ const masterDataSchema = new mongoose.Schema({
       MASTER_DATA_TYPES.DESIGNATION,
       MASTER_DATA_TYPES.GROUP_NAME,
       MASTER_DATA_TYPES.PRODUCT_DIVISION,
-      MASTER_DATA_TYPES.DEPARTMENT
+      MASTER_DATA_TYPES.DEPARTMENT,
+      MASTER_DATA_TYPES.TYPE_OF_TRAINING
     ],
     required: true,
     index: true

@@ -8,6 +8,7 @@ import { Calendar, User, Search, RefreshCw, AlertCircle, Save, ArrowLeft } from 
 
 import * as trainingApi from '../../api/training.api';
 import * as staffApi from '../../api/staff.api';
+import * as masterApi from '../../api/master.api';
 import { useDebounce } from '../../hooks/useDebounce';
 import { trainingRecordSchema } from '../../utils/validators';
 import { formatInputDate, formatDate } from '../../utils/formatters';
@@ -22,6 +23,23 @@ const TrainingAddPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [duplicateBanner, setDuplicateBanner] = useState(false);
+  const [trainingTypes, setTrainingTypes] = useState(TRAINING_TYPE_OPTIONS.map(o => ({ value: o.value, _id: o.value })));
+
+  // Load training types on mount
+  useEffect(() => {
+    const fetchTrainingTypes = async () => {
+      try {
+        const response = await masterApi.getMasterData('typeOfTraining');
+        if (response.data.data && response.data.data.length > 0) {
+          setTrainingTypes(response.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load training types:', err);
+        toast.error('Failed to load dynamic training type options.');
+      }
+    };
+    fetchTrainingTypes();
+  }, []);
 
   // Staff Autocomplete Lookups
   const [searchVal, setSearchVal] = useState('');
@@ -139,7 +157,8 @@ const TrainingAddPage = () => {
           endDateOfTraining: '',
           requestProcessedDate: '',
           trainingStatus: '',
-          trainingCostPerPerson: 0
+          trainingCostPerPerson: 0,
+          remarks: ''
         });
       } else {
         setTimeout(() => {
@@ -351,7 +370,7 @@ const TrainingAddPage = () => {
                   {...register('typeOfTraining')}
                 >
                   <option value="">Select Type</option>
-                  {TRAINING_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {trainingTypes.map(o => <option key={o._id} value={o.value}>{o.value}</option>)}
                 </select>
                 {errors.typeOfTraining && <p className="text-[10px] text-red-500 font-semibold">{errors.typeOfTraining.message}</p>}
               </div>
@@ -496,6 +515,20 @@ const TrainingAddPage = () => {
                   {...register('trainingCostPerPerson')}
                 />
                 {errors.trainingCostPerPerson && <p className="text-[10px] text-red-500 font-semibold">{errors.trainingCostPerPerson.message}</p>}
+              </div>
+ 
+              {/* Remarks (Optional) - Full Width */}
+              <div className="space-y-1 col-span-1 md:col-span-2">
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Remarks (Optional)</label>
+                <textarea
+                  placeholder="Enter any additional details or notes about this training record..."
+                  rows="3"
+                  className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 dark:text-white ${
+                    errors.remarks ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                  }`}
+                  {...register('remarks')}
+                />
+                {errors.remarks && <p className="text-[10px] text-red-500 font-semibold">{errors.remarks.message}</p>}
               </div>
 
             </div>

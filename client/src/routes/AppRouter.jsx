@@ -65,16 +65,6 @@ const AppRouter = () => {
         {/* Public auth pages */}
         <Route path="/login" element={<LoginPage />} />
         
-        {/* Protected password reset */}
-        <Route 
-          path="/change-password" 
-          element={
-            <ProtectedRoute>
-              <ChangePasswordPage />
-            </ProtectedRoute>
-          } 
-        />
-        
         {/* Core Authenticated Pages */}
         <Route 
           path="/" 
@@ -86,6 +76,7 @@ const AppRouter = () => {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="change-password" element={<ChangePasswordPage />} />
           
           {/* Training Records CRUD */}
           <Route path="training" element={<TrainingListPage />} />
